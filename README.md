@@ -2,9 +2,23 @@
 
 Express Middleware to filter out Mongoose model attributes.
 You pass an array of fields you do not want returned as part of
-json or jsonp requests for example.
-app.use(mongoosemask(['_id', '_privatefield']));
-These will then be removed from your json objects before sending to the
+json or jsonp requests.
+
+##Install
+To install the latest official version, use NPM:
+
+    npm install mongoosemask --save
+
+To run the tests and see what is supported run either of the following commands
+
+    npm test
+    grunt
+
+##Usage
+
+    app.use(mongoosemask(['_id', '_privatefield']));
+
+The '_id' and the '_privatefield' will then be removed from your json objects before sending to the
 client.
 
 #NOTE
