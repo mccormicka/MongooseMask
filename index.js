@@ -23,7 +23,6 @@ exports = module.exports = function (values) {
             original(duplicate);
         };
     }
-
     return function (req, res, next) {
         res.json = wrap(res.json.bind(res));
         res.jsonp = wrap(res.jsonp.bind(res));
