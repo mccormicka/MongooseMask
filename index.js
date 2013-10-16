@@ -38,14 +38,14 @@ exports = module.exports = function (values) {
  * @returns {*}
  */
 module.exports.mask = function mask(obj, values) {
-    var duplicate = obj;
-    if (_.isFunction(obj.toObject)) {
-        duplicate = obj.toObject();
-        _.each(values, function (value) {
-            delete duplicate[value];
+    if(_.isArray(obj)){
+        var results = [];
+        _.each(obj, function(item){
+            results.push(masked(item, values));
         });
+        return results;
     }
-    return duplicate;
+    return masked(obj, values);
 };
 
 /**
@@ -63,17 +63,45 @@ module.exports.mask = function mask(obj, values) {
  * @returns {{}}
  */
 module.exports.expose = function expose(obj, values){
+    if(_.isArray(obj)){
+        var results = [];
+        _.each(obj, function(item){
+            results.push(exposed(item, values));
+        });
+        return results;
+    }
+    return exposed(obj, values);
+};
+
+//-------------------------------------------------------------------------
+//
+// Private Methods
+//
+//-------------------------------------------------------------------------
+
+function masked(obj, values) {
+    var duplicate = obj;
+    if (_.isFunction(obj.toObject)) {
+        duplicate = obj.toObject();
+        _.each(values, function (value) {
+            delete duplicate[value];
+        });
+    }
+    return duplicate;
+}
+
+function exposed(obj, values) {
     var duplicate = {};
     if (_.isFunction(obj.toObject)) {
         _.each(values, function (item) {
-            if(_.isObject(item)){
-                _.forIn(item, function(value, key){
+            if (_.isObject(item)) {
+                _.forIn(item, function (value, key) {
                     duplicate[value] = obj[key];
                 });
-            }else{
+            } else {
                 duplicate[item] = obj[item];
             }
         });
     }
     return duplicate;
-};
+}

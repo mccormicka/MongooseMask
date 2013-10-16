@@ -2,6 +2,7 @@
 
 describe('MongooseMask Tests', function () {
 
+
     var mongooseMask = require('../index');
     var mockgoose = require('mockgoose');
     var mongoose = require('mongoose');
@@ -11,10 +12,12 @@ describe('MongooseMask Tests', function () {
 
     var request = require('supertest');
     var express = require('express');
+    var _ = require('lodash');
 
     beforeEach(function (done) {
         mockgoose.reset();
-        Model.create({publicField: 'Hello', privateField: 'World'}, function (err, result) {
+        Model.create({publicField: 'Hello', privateField: 'World'},
+            {publicField:'Hello', privateField:'World'}, function (err, result) {
             expect(result).not.toBeNull();
             if (result) {
                 expect(result.publicField).toBe('Hello');
@@ -67,6 +70,20 @@ describe('MongooseMask Tests', function () {
             });
         });
 
+        it('Mask all items in an array', function (done) {
+            Model.find({}, function(err, results){
+                results = mongooseMask.mask(results, ['_id', 'privateField']);
+                expect(results.length).toBe(2);
+                _.each(results, function(result){
+                    expect(result._id).toBeUndefined();
+                    expect(result.publicField).toBe('Hello');
+                    expect(result.privateField).toBeUndefined();
+                });
+                done(err);
+            });
+        });
+
+
         it('Mask fields if mask applied', function (done) {
             Model.findOne({}, function(err, result){
                 result = mongooseMask.mask(result, ['_id', 'privateField']);
@@ -84,6 +101,21 @@ describe('MongooseMask Tests', function () {
                 expect(result._id).toBeDefined();
                 expect(result.publicField).toBeUndefined();
                 expect(result.privateField).toBeDefined();
+                done(err);
+            });
+        });
+
+        it('Be able to expose explicit fields on array', function (done) {
+            Model.find({}, function(err, results){
+                console.log('Results - ', results);
+                results = mongooseMask.expose(results, ['_id', 'privateField']);
+                expect(results.length).toBe(2);
+                _.each(results, function(result){
+                    console.log('Result', result);
+                    expect(result._id).toBeDefined();
+                    expect(result.publicField).toBeUndefined();
+                    expect(result.privateField).toBeDefined();
+                });
                 done(err);
             });
         });
