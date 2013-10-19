@@ -8,6 +8,20 @@
  * These will then be removed from your json objects before sending to the
  * client.
  *
+ * Additionally if you have a complex item that needs masking  you can pass a
+ * callback funtion that will be invoked before your object is serialized to json.
+ *
+ * The callback must have the following signature.
+ * function(obj, mask, done);
+ *
+ * @usage express.use(mongooseMask(function(value, mask, done){
+ *             var masked = mask(value, ['_id', '__v']);
+ *             if(masked.data){
+ *                 masked.data = mask(value.data, ['_id', '__v']);
+ *             }
+ *             done(null, masked);
+ *         }));
+ *
  * ** NOTE
  * If you are using 'express-partial-response' you must place this middleware
  * AFTER you place the express-partial-response middleware as this middlware only works
@@ -17,12 +31,21 @@
 var _ = require('lodash');
 
 exports = module.exports = function (values) {
+    var mask = module.exports.mask;
+
     function wrap(original) {
         return function (obj) {
-            var duplicate = module.exports.mask(obj, values);
-            original(duplicate);
+            if (_.isFunction(values)) {
+                values(obj, mask, function (err, masked) {
+                    original(masked);
+                });
+            } else {
+                var duplicate = mask(obj, values);
+                original(duplicate);
+            }
         };
     }
+
     return function (req, res, next) {
         res.json = wrap(res.json.bind(res));
         res.jsonp = wrap(res.jsonp.bind(res));
@@ -38,9 +61,9 @@ exports = module.exports = function (values) {
  * @returns {*}
  */
 module.exports.mask = function mask(obj, values) {
-    if(_.isArray(obj)){
+    if (_.isArray(obj)) {
         var results = [];
-        _.each(obj, function(item){
+        _.each(obj, function (item) {
             results.push(masked(item, values));
         });
         return results;
@@ -60,12 +83,11 @@ module.exports.mask = function mask(obj, values) {
  * [ '_id', {_id:'id} ] will expose both id and _id
  * @param obj
  * @param values
- * @returns {{}}
  */
-module.exports.expose = function expose(obj, values){
-    if(_.isArray(obj)){
+module.exports.expose = function expose(obj, values) {
+    if (_.isArray(obj)) {
         var results = [];
-        _.each(obj, function(item){
+        _.each(obj, function (item) {
             results.push(exposed(item, values));
         });
         return results;
@@ -80,28 +102,28 @@ module.exports.expose = function expose(obj, values){
 //-------------------------------------------------------------------------
 
 function masked(obj, values) {
-    var duplicate = obj;
+    var duplicate;
     if (_.isFunction(obj.toObject)) {
         duplicate = obj.toObject();
-        _.each(values, function (value) {
-            delete duplicate[value];
-        });
+    } else {
+        duplicate = _.clone(obj);
     }
+    _.each(values, function (value) {
+        delete duplicate[value];
+    });
     return duplicate;
 }
 
 function exposed(obj, values) {
     var duplicate = {};
-    if (_.isFunction(obj.toObject)) {
-        _.each(values, function (item) {
-            if (_.isObject(item)) {
-                _.forIn(item, function (value, key) {
-                    duplicate[value] = obj[key];
-                });
-            } else {
-                duplicate[item] = obj[item];
-            }
-        });
-    }
+    _.each(values, function (item) {
+        if (_.isObject(item)) {
+            _.forIn(item, function (value, key) {
+                duplicate[value] = obj[key];
+            });
+        } else {
+            duplicate[item] = obj[item];
+        }
+    });
     return duplicate;
 }

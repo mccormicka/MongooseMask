@@ -4,7 +4,7 @@ Express Middleware to filter out Mongoose model attributes.
 You pass an array of fields you do not want returned as part of
 json or jsonp requests.
 
-##Install
+###Install
 To install the latest official version, use NPM:
 
     npm install mongoosemask --save
@@ -14,7 +14,7 @@ To run the tests and see what is supported run either of the following commands
     npm test
     grunt
 
-##Usage
+###Usage
 
     app.use(mongoosemask(['_id', '_privatefield']));
 
@@ -51,14 +51,33 @@ for example
      }
 
 
-#NOTE
+###Notes
 If you are using 'express-partial-response' you must place this middleware
 AFTER you place the express-partial-response middleware as this middlware only works
 with mongoose objects which the express-partial-response middleware does not return
 
-#0.0.2
+###CHANGELOG
+
+###0.0.3
+Added the ability to pass a function as the mask callback for the express middleware.
+if you have a complex item that needs masking  you can pass a
+callback funtion that will be invoked before your object is serialized to json.
+
+ The callback must have the following signature.
+ function(obj, mask, done);
+
+     express.use(mongooseMask(function(value, mask, done){
+             var masked = mask(value, ['_id', '__v']);
+             if(masked.data){
+                 masked.data = mask(value.data, ['_id', '__v']);
+             }
+             done(null, masked);
+         }));
+
+
+###0.0.2
 Added support for calling mask directly.
 Added expose() method as an inverse of mask.
  
-#0.0.1
+###0.0.1
 Initial release
