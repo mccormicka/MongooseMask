@@ -65,6 +65,9 @@ with mongoose objects which the express-partial-response middleware does not ret
 
 ###CHANGELOG
 
+###0.0.5
+Quick fix for nested objects.
+
 ###0.0.4
 Added dot'.' notation support to expose/mask methods. The method will try to walk the
 chain until it finds the value to expose/mask.

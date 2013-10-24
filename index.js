@@ -142,6 +142,7 @@ function findValue(objectPath, obj) {
     var value = objectPath;
     for (var k = 0; k < objPath.length; k++) {
         value = obj[objPath[k]];
+        obj = value;
     }
     return value;
 }
