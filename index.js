@@ -4,7 +4,7 @@
  * Express Middleware to filter out Mongoose model attributes.
  * You pass an array of fields you do not want returned as part of
  * json or jsonp requests for example.
- * app.use(mongoosemask(['_id', '_privatefield']));
+ * app.use(mongoosemask(['_id', '_privatefield', 'nested.private.field']));
  * These will then be removed from your json objects before sending to the
  * client.
  *
@@ -57,7 +57,7 @@ exports = module.exports = function (values) {
  * Expose all values on an object except for the masked items
  * passed in the values array.
  * @param obj
- * @param values
+ * @param values ['_id', 'private.field.nested.value']
  * @returns {*}
  */
 module.exports.mask = function mask(obj, values) {
@@ -79,8 +79,10 @@ module.exports.mask = function mask(obj, values) {
  *     _id -> _id will expose the _id mongoose value
  * or an object that maps keys to values
  * for example
- *     {_id:'id'} will expose _id as id on the object.
- * [ '_id', {_id:'id} ] will expose both id and _id
+ *     {_id:'id'} //will expose _id as id on the object.
+ * [ '_id', {_id:'id}, //will expose both id and _id
+ * {'nested.value.here' : 'exposed.at.any.level'} // will create a sub object {exposed:{at:{any:level:'valuehere'}}}]
+ *
  * @param obj
  * @param values
  */
@@ -102,14 +104,20 @@ module.exports.expose = function expose(obj, values) {
 //-------------------------------------------------------------------------
 
 function masked(obj, values) {
-    var duplicate;
+    var duplicate = {};
     if (_.isFunction(obj.toObject)) {
         duplicate = obj.toObject();
     } else {
         duplicate = _.clone(obj);
     }
-    _.each(values, function (value) {
-        delete duplicate[value];
+    _.each(values, function (item) {
+        if (_.isObject(item)) {
+            _.forIn(item, function (value) {
+                deleteItemValue(duplicate, value);
+            });
+        } else {
+            deleteItemValue(duplicate, item);
+        }
     });
     return duplicate;
 }
@@ -119,11 +127,53 @@ function exposed(obj, values) {
     _.each(values, function (item) {
         if (_.isObject(item)) {
             _.forIn(item, function (value, key) {
-                duplicate[value] = obj[key];
+                setItemValue(duplicate, obj, key, value);
             });
         } else {
-            duplicate[item] = obj[item];
+            setItemValue(duplicate, obj, item, item);
         }
     });
     return duplicate;
+}
+
+function findValue(objectPath, obj) {
+    var objPath = objectPath.split('.');
+    //Find our value.
+    var value = objectPath;
+    for (var k = 0; k < objPath.length; k++) {
+        value = obj[objPath[k]];
+    }
+    return value;
+}
+
+function buildDuplicatePath(dup, duplicatePath) {
+    var dupPath = duplicatePath.split('.');
+//Build up our duplicate
+    var path = 'dup';
+    var dupObj = dup;
+    _.each(dupPath, function (item) {
+        if (_.isUndefined(dupObj[item])) {
+            dupObj[item] = {};
+        }
+        dupObj = dupObj[item];
+        path += '["' + item + '"]';
+    });
+    return path;
+}
+
+function setItemPath(dup, obj, objectPath, path) {
+    var value = findValue(objectPath, obj);
+    path += '=value;';
+    eval(path);
+}
+
+function setItemValue(dup, obj, objectPath, duplicatePath) {
+    var path = buildDuplicatePath(dup, duplicatePath);
+    setItemPath(dup, obj, objectPath, path);
+}
+
+function deleteItemValue(dup,duplicatePath){
+    var path = buildDuplicatePath(dup, duplicatePath);
+    path = 'delete ' + path;
+    eval(path);
 }

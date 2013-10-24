@@ -110,7 +110,6 @@ describe('MongooseMask Tests', function () {
                 results = mongooseMask.expose(results, ['_id', 'privateField']);
                 expect(results.length).toBe(2);
                 _.each(results, function (result) {
-                    console.log('Result', result);
                     expect(result._id).toBeDefined();
                     expect(result.publicField).toBeUndefined();
                     expect(result.privateField).toBeDefined();
@@ -147,12 +146,9 @@ describe('MongooseMask Tests', function () {
                 expect(err).toBeNull();
 
                 var middleware = mongooseMask(function (obj, mask, done) {
-                    console.log('calling mask', obj);
                     var masked = mask(obj, ['_id', 'privateField']);
-                    console.log('calling mask', masked);
                     masked.data = mask(obj.data, ['_id', 'privateField']);
                     masked.nestedDoc = mask(obj.nestedDoc, ['_id', 'privateField']);
-                    console.log('calling mask', masked);
                     done(null, masked);
                 });
                 var req = {};
@@ -174,6 +170,87 @@ describe('MongooseMask Tests', function () {
 
             });
         });
+
+        it('Be able to expose items on the property chain', function (done) {
+            ModelNested.create({
+                publicField: 'public',
+                privateField: 'private',
+                data: {publicField: 'public',
+                    privateField: 'private' },
+                nestedDoc:[{
+                    publicField: 'public',
+                    privateField: 'private'
+                }]
+            }, function (err, result) {
+
+                var masked = mongooseMask.expose(result, [
+                    'publicField',
+                    'data.privateField',
+                    {'data.publicField' : 'data.public'},
+                    {'nestedDoc.publicField' : 'nested'}
+                ]);
+
+                expect(masked.publicField).toBe('public');
+                expect(masked.data.privateField).toBe('private');
+                expect(masked.data.public).toBe('public');
+                expect(masked.public).toBeUndefined();
+                expect(masked.nested).toBe('public');
+                done(err);
+            });
+        });
+
+        it('Be able to mask items on the property chain', function (done) {
+            ModelNested.create({
+                publicField: 'public',
+                privateField: 'private',
+                data: {publicField: 'public',
+                    privateField: 'private' },
+                nestedDoc:[{
+                    publicField: 'public',
+                    privateField: 'private'
+                }]
+            }, function (err, result) {
+
+                var masked = mongooseMask.mask(result, [
+                    'privateField',
+                    'data.privateField'
+                ]);
+
+                expect(masked.publicField).toBe('public');
+                expect(masked.privateField).toBeUndefined();
+                expect(masked.data.publicField).toBe('public');
+                expect(masked.data.privateField).toBeUndefined();
+                done(err);
+            });
+        });
+
+        it('Fail gracefully if items are not on the property chain by setting them to undefined', function (done) {
+            ModelNested.create({
+                publicField: 'public',
+                privateField: 'private',
+                data: {publicField: 'public',
+                    privateField: 'private' },
+                nestedDoc:[{
+                    publicField: 'public',
+                    privateField: 'private'
+                }]
+            }, function (err, result) {
+
+                var masked = mongooseMask.expose(result, [
+                    'publicField.something',
+                    {'data.publicField.fakeField' : 'data.public'},
+                    {'nestedDoc.publicField' : 'nested'}
+                ]);
+
+                expect(masked.publicField.something).toBeUndefined();
+                expect(masked.data.public).toBeUndefined();
+                expect(masked.nested).toBe('public');
+                done(err);
+            });
+        });
+
+
+
     });
 
     describe('SHOULD NOT', function () {

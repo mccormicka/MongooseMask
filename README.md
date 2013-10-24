@@ -40,14 +40,21 @@ for example
 
 or an object that maps keys to values
 for example
-        {_id:'id'} will expose _id as id on the object.
-    [ '_id', {_id:'id} ] will expose both id and _id
+    {_id:'id'}
+    Will expose _id as id on the object.
+    [ '_id', {_id:'id} ]
+    Will expose both id and _id,
+     {'nested.value.here' : 'exposed.at.any.level'}
+     Will create a sub object {exposed:{at:{any:level:'valuehere'}}}]
 
-    var exposedModel = mongoosemask.expose(model, [{_id:'id'}, {'email':'username'}, 'name']);
+    var exposedModel = mongoosemask.expose(model, [{_id:'id'}, {'email':'username'}, 'name', {'nested.value' : 'user.profile' }]);
      exposedModel = {
      id:12345,
      username:'my@email.com',
-     name:'nodejs'
+     name:'nodejs',
+     user:{
+            profile:'public ...'
+          }
      }
 
 
@@ -57,6 +64,18 @@ AFTER you place the express-partial-response middleware as this middlware only w
 with mongoose objects which the express-partial-response middleware does not return
 
 ###CHANGELOG
+
+###0.0.4
+Added dot'.' notation support to expose/mask methods. The method will try to walk the
+chain until it finds the value to expose/mask.
+
+mask( ['this.sub.value'], model );
+expose(['this.sub.value', { 'this.sub.value.two' : 'new.position.in.exposed.model' }], model );
+
+If the expose method can not find the value then it will set it as undefined.
+
+One limitation is that the dot notation can not traverse a sub array so model.[ {value:value}, {value:value}]
+will not be able to mask the model.value of the two sub models.
 
 ###0.0.3
 Added the ability to pass a function as the mask callback for the express middleware.
