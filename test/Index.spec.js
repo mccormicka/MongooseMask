@@ -139,15 +139,17 @@ describe('MongooseMask Tests', function () {
                 data: {
                     publicField: 'public',
                     privateField: 'private' },
-                nestedDoc:[{
-                    publicField: 'public',
-                    privateField: 'private'
-                }]
+                nestedDoc: [
+                    {
+                        publicField: 'public',
+                        privateField: 'private'
+                    }
+                ]
             }, function (err, result) {
                 expect(err).toBeNull();
 
                 var middleware = mongooseMask(function (obj, mask, done) {
-                    var masked = mask(obj, ['__v','_id', 'privateField']);
+                    var masked = mask(obj, ['__v', '_id', 'privateField']);
                     masked.data = mask(obj.data, ['_id', 'privateField']);
                     masked.nestedDoc = mask(obj.nestedDoc, ['_id', 'privateField']);
                     done(null, masked);
@@ -159,12 +161,19 @@ describe('MongooseMask Tests', function () {
                         response = data;
                         return data;
                     },
-                    jsonp:function(){}
+                    jsonp: function () {
+                    }
                 };
                 middleware(req, res, function () {
                     res.json(result);
                     expect(response).toEqual(
-                        { publicField : 'public', data : { publicField : 'public' }, nestedDoc : [ { publicField : 'public' } ] }
+                        {
+                            publicField: 'public',
+                            data: { publicField: 'public' },
+                            nestedDoc: [
+                                { publicField: 'public' }
+                            ]
+                        }
                     );
                     done();
                 });
@@ -172,7 +181,7 @@ describe('MongooseMask Tests', function () {
             });
         });
 
-        iit('Be able to expose items on the property chain', function (done) {
+        it('Be able to expose items on the property chain', function (done) {
             ModelNested.create({
                 publicField: 'public',
                 privateField: 'private',
@@ -180,17 +189,19 @@ describe('MongooseMask Tests', function () {
                     publicField: 'public',
                     privateField: 'private2'
                 },
-                nestedDoc:[{
-                    publicField: 'public',
-                    privateField: 'private'
-                }]
+                nestedDoc: [
+                    {
+                        publicField: 'public',
+                        privateField: 'private'
+                    }
+                ]
             }, function (err, result) {
 
                 var masked = mongooseMask.expose(result, [
                     'publicField',
                     'data.privateField',
-                    {'data.publicField' : 'data.public'},
-                    {'nestedDoc.publicField' : 'nested'}
+                    {'data.publicField': 'data.public'},
+                    {'nestedDoc.publicField': 'nested'}
                 ]);
 
                 expect(masked.publicField).toBe('public');
@@ -207,10 +218,12 @@ describe('MongooseMask Tests', function () {
                 privateField: 'private',
                 data: {publicField: 'public',
                     privateField: 'private' },
-                nestedDoc:[{
-                    publicField: 'public',
-                    privateField: 'private'
-                }]
+                nestedDoc: [
+                    {
+                        publicField: 'public',
+                        privateField: 'private'
+                    }
+                ]
             }, function (err, result) {
 
                 var masked = mongooseMask.mask(result, [
@@ -230,28 +243,27 @@ describe('MongooseMask Tests', function () {
             ModelNested.create({
                 publicField: 'public',
                 privateField: 'private',
-                data: {publicField: 'public',
-                    privateField: 'private' },
-                nestedDoc:[{
+                data: {
                     publicField: 'public',
                     privateField: 'private'
-                }]
+                },
+                nestedDoc: {
+                    publicField: 'public',
+                    privateField: 'private'
+                }
             }, function (err, result) {
 
                 var masked = mongooseMask.expose(result, [
                     'publicField.something',
-                    {'data.publicField.fakeField' : 'data.public'},
-                    {'nestedDoc.publicField' : 'nested'}
+                    {'data.publicField.fakeField': 'data.public'},
+                    {'nestedDoc.publicField': 'nested'}
                 ]);
-
+                console.log('What', masked);
                 expect(masked.publicField.something).toBeUndefined();
                 expect(masked.data.public).toBeUndefined();
-                expect(masked.nested).toBe('public');
                 done(err);
             });
         });
-
-
 
     });
 
@@ -279,5 +291,40 @@ describe('MongooseMask Tests', function () {
                     done(err);
                 });
         });
+
+        it('Throw an error when encountering an undefined/null path value', function (done) {
+
+            ModelNested.create({
+                publicField: 'public',
+                privateField: 'private',
+                data: {
+                    publicField: 'public',
+                    privateField: 'private2'
+                },
+                nestedDoc: [
+                    {
+                        publicField: 'public',
+                        privateField: 'private'
+                    }
+                ]
+            }, function (err, result) {
+
+                expect(function () {
+                    var masked = mongooseMask.expose(result, [
+                        'publicField',
+                        'data.privateField',
+                        {'data.publicField': 'data.public'},
+                        {'nestedDoc.publicField.nested.error': 'nested'}
+                    ]);
+
+                    expect(masked.publicField).toBe('public');
+                    expect(masked.data.privateField).toBe('private2');
+                    expect(masked.data.public).toBe('public');
+                    expect(masked.public).toBeUndefined();
+                }).not.toThrow();
+                done(err);
+            });
+        });
+
     });
 });

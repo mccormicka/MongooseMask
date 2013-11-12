@@ -141,7 +141,9 @@ function findValue(objectPath, obj) {
     //Find our value.
     var value = objectPath;
     for (var k = 0; k < objPath.length; k++) {
-        value = obj[objPath[k]];
+        if (obj) {
+            value = obj[objPath[k]];
+        }
         obj = value;
     }
     return value;
@@ -173,7 +175,7 @@ function setItemValue(dup, obj, objectPath, duplicatePath) {
     setItemPath(dup, obj, objectPath, path);
 }
 
-function deleteItemValue(dup,duplicatePath){
+function deleteItemValue(dup, duplicatePath) {
     var path = buildDuplicatePath(dup, duplicatePath);
     path = 'delete ' + path;
     eval(path);

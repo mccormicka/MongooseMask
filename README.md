@@ -97,6 +97,9 @@ callback funtion that will be invoked before your object is serialized to json.
          }));
 
 
+###0.0.6
+Fixed NPE when passing nested objects
+
 ###0.0.2
 Added support for calling mask directly.
 Added expose() method as an inverse of mask.
